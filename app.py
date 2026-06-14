@@ -17,18 +17,20 @@ if not os.path.exists(model_path):
     gdown.download(url, model_path, quiet=False)
 
 # ----------------------------
-# Load model
+# Load model (SAFE VERSION)
 # ----------------------------
-model = tf.keras.models.load_model(model_path)
+@st.cache_resource
+def load_model():
+    return tf.keras.models.load_model(model_path)
+
+model = load_model()
 
 # ----------------------------
 # UI
 # ----------------------------
 st.title("🐶🐱 Dog vs Cat Classifier")
 
-st.write("Upload an image and I will predict if it's a Dog or Cat")
-
-uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
@@ -37,14 +39,17 @@ if uploaded_file is not None:
     # Preprocess
     img = image.resize((128, 128))
     img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
 
-    # Prediction
-    prediction = model.predict(img_array)[0][0]
-
-    if prediction > 0.5:
-        st.success("🐶 Dog")
+    if img_array.shape[-1] != 3:
+        st.error("Please upload RGB image")
     else:
-        st.success("🐱 Cat")
+        img_array = np.expand_dims(img_array, axis=0)
 
-    st.write("Confidence:", float(prediction))
+        prediction = model.predict(img_array)[0][0]
+
+        if prediction > 0.5:
+            st.success("🐶 Dog")
+        else:
+            st.success("🐱 Cat")
+
+        st.write("Confidence:", float(prediction))
